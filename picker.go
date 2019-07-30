@@ -9,6 +9,11 @@ import (
 	"github.com/rivo/tview"
 )
 
+type nodeRef struct {
+	FullPath string
+	Info     os.FileInfo
+}
+
 // FilePicker ...
 type FilePicker struct {
 	*tview.TreeView
@@ -53,8 +58,10 @@ func (p *FilePicker) add(target *tview.TreeNode, path string) error {
 
 	for _, file := range files {
 		node := tview.NewTreeNode(file.Name()).
-			SetReference(filepath.Join(path, file.Name())).
-			SetSelectable(true)
+			SetReference(nodeRef{
+				FullPath: filepath.Join(path, file.Name()),
+				Info:     file,
+			}).SetSelectable(true)
 		if file.IsDir() {
 			node.SetColor(tcell.ColorGreen)
 		}
@@ -69,11 +76,12 @@ func (p *FilePicker) onSelected(node *tview.TreeNode) {
 	if reference == nil {
 		return // Selecting the root node does nothing.
 	}
+
+	ref := reference.(nodeRef)
 	children := node.GetChildren()
 	if len(children) == 0 {
 		// Load and show files in this directory.
-		path := reference.(string)
-		p.add(node, path)
+		p.add(node, ref.FullPath)
 	} else {
 		// Collapse if visible, expand if collapsed.
 		node.SetExpanded(!node.IsExpanded())
